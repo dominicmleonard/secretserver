@@ -1,0 +1,19 @@
+---
+- hosts: secretserver
+  vars:
+    ansible_become: yes
+    ansible_become_method: runas
+    ansible_become_user: adminuser
+    ansible_become_password: #{kv-admin-user-password}#
+  tasks:
+
+  - name: Install SQL Server Express
+    win_chocolatey:
+      name: sql-server-express
+      state: present
+
+  - name: Install .Net 4.8
+    win_chocolatey:
+      name: dotnetfx
+      state: present
+   

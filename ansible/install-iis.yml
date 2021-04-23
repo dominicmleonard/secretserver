@@ -1,0 +1,15 @@
+---
+- hosts: secretserver
+  tasks:
+
+  - name: Install IIS etc
+    win_feature:
+      name:
+        - Web-Server
+        - Web-Asp-Net45
+        - Web-Mgmt-Service
+        - web-windows-auth
+        - web-dyn-compression
+        - web-http-redirect
+      state: present
+
