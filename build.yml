@@ -1,0 +1,75 @@
+# Variable Group 'kvault-vars' was defined in the Variables tab
+jobs:
+- job: Job_1
+  displayName: Thycotic Server Build
+  pool:
+    vmImage: ubuntu-20.04
+  steps:
+  - checkout: self
+  - task: CmdLine@2
+    displayName: Terraform Init
+    inputs:
+      script: >
+        terraform init -backend-config="access_key=$(kv-terradom01-key1)"
+      workingDirectory: terraform
+  - task: CmdLine@2
+    displayName: Terraform Validate
+    inputs:
+      script: >+
+        terraform validate
+
+      workingDirectory: terraform
+  - task: CmdLine@2
+    displayName: Terraform Plan
+    inputs:
+      script: >+
+        terraform plan -input=false -out=tfplan -var="kv-admin-user-password=$(kv-admin-user-password)" -var="kv-ado-spn-appid=$(kv-ado-spn-appid)" -var="kv-ado-spn-password=$(kv-ado-spn-password)" -var="kv-ado-spn-tenant=$(kv-ado-spn-tenant)"
+
+      workingDirectory: terraform
+  - task: CmdLine@2
+    displayName: Terraform Apply
+    inputs:
+      script: >+
+        terraform apply -auto-approve -input=false tfplan
+
+      workingDirectory: terraform
+  - task: terraform-outputs@0
+    displayName: Terraform Outputs
+    inputs:
+      workingDirectory: terraform
+  - task: CmdLine@2
+    displayName: Command Line Script
+    inputs:
+      script: >
+        echo "$(secrectserver_pub_ip)"
+  - task: replacetokens@3
+    displayName: Replace tokens in inventory,*.yml
+    inputs:
+      rootDirectory: ansible
+      targetFiles: inventory,*.yml
+  - task: Ansible@0
+    displayName: Install IIS etc
+    inputs:
+      ansibleInterface: remoteMachine
+      connectionOverSsh: fc9614b1-cb40-43fc-8540-97c880a5d1d3
+      playbookRootRemoteMachine: ansible
+      playbookPathLinkedArtifactOnRemoteMachine: install-iis.yml
+      playbookPathOnAgentMachine: ansible/install-iis.yml
+      inventoriesRemoteMachine: file
+      inventoryFileLinkedArtifactOnRemoteMachine: ansible/inventory
+      inventoriesAgentMachine: file
+      inventoryFileOnAgentMachine: ansible/inventory
+  - task: Ansible@0
+    displayName: Install SQL Express
+    enabled: False
+    inputs:
+      ansibleInterface: remoteMachine
+      connectionOverSsh: fc9614b1-cb40-43fc-8540-97c880a5d1d3
+      playbookRootRemoteMachine: ansible
+      playbookPathLinkedArtifactOnRemoteMachine: install-sql-expr.yml
+      playbookPathOnAgentMachine: ansible/install-iis.yml
+      inventoriesRemoteMachine: file
+      inventoryFileLinkedArtifactOnRemoteMachine: ansible/inventory
+      inventoriesAgentMachine: file
+      inventoryFileOnAgentMachine: ansible/inventory
+...
