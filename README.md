@@ -1,17 +1,32 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+# Introduction
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+The code in this repo is deisgned to be used to create an instance of Thycotic Secret Server that can be used in a dev/test environment.  It relies on the user having a free account with Thycotic and both Azure RM and Azure DevOps accounts.  The code ca be used to run Azure DevOps Pipelines that can build and then destroy an instance of Secret Server.
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+# Pre-requisites
 
-# Contribute
+You will need the following setup before you can use this repo:
+
+1. Thycotic Secret Server Download (web site files & setup.exe)
+2. Azure RM Account
+3. Storage account in Azure (used for holding Terrafomr state & software for Secret Server)
+4. Azure Key Vault (used to store all passwords and Service Principal details)
+5. Service Principal for Azure RM with contributor access to Azure and access to the Key Vault
+6. Azure DevOps Account
+
+
+# Azure RM Steps
+
+Below are the detailed steps required to get your Azure subscription ready to use this repo.
+
+1. Create a resource group ado config details (eg ado-config)
+2. Create a storage account within that resource group.
+3. Create a container in the storage account to house Terraform state (eg terraform)
+4. Create a Key Vault
+5. Create a Service Principal
+6. Add details of the Service Principal (eg client-id, password) to the Key Vault as Secrets
+
+# Azure DevOps Steps
+
 TODO: Explain how other users and developers can contribute to make your code better. 
 
 If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
