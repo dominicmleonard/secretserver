@@ -12,4 +12,3 @@
         - web-dyn-compression
         - web-http-redirect
       state: present
-

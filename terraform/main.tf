@@ -1,22 +1,6 @@
 resource "azurerm_resource_group" "thycotic" {
-  name     = "thycotic-rg-001"
+  name     = var.resourcegroup
   location = var.location-name
-}
-
-## <https://www.terraform.io/docs/providers/azurerm/r/virtual_network.html>
-resource "azurerm_virtual_network" "vnet" {
-  name                = "vNet"
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.thycotic.location
-  resource_group_name = azurerm_resource_group.thycotic.name
-}
-
-## <https://www.terraform.io/docs/providers/azurerm/r/subnet.html> 
-resource "azurerm_subnet" "subnet" {
-  name                 = "internal"
-  resource_group_name  = azurerm_resource_group.thycotic.name
-  virtual_network_name = azurerm_virtual_network.vnet.name
-  address_prefix       = "10.0.2.0/24"
 }
 
 resource "azurerm_public_ip" "myterraformpublicip" {
@@ -24,7 +8,20 @@ resource "azurerm_public_ip" "myterraformpublicip" {
     location            = azurerm_resource_group.thycotic.location
     resource_group_name = azurerm_resource_group.thycotic.name
     allocation_method   = "Dynamic"
+}
 
+resource "azurerm_virtual_network" "vnet" {
+  name                = "vNet"
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.thycotic.location
+  resource_group_name = azurerm_resource_group.thycotic.name
+}
+
+resource "azurerm_subnet" "subnet" {
+  name                 = "internal"
+  resource_group_name  = azurerm_resource_group.thycotic.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = ["10.0.2.0/24"]
 }
 
 resource "azurerm_network_security_group" "myterraformnsg" {
@@ -57,8 +54,20 @@ resource "azurerm_network_security_group" "myterraformnsg" {
     }
 
     security_rule {
-        name                       = "winrm"
+        name                       = "http"
         priority                   = 1003
+        direction                  = "Inbound"
+        access                     = "Allow"
+        protocol                   = "Tcp"
+        source_port_range          = "*"
+        destination_port_range     = "80"
+        source_address_prefix      = "*"
+        destination_address_prefix = "*"
+    }
+
+    security_rule {
+        name                       = "winrm"
+        priority                   = 1004
         direction                  = "Inbound"
         access                     = "Allow"
         protocol                   = "Tcp"
@@ -68,9 +77,20 @@ resource "azurerm_network_security_group" "myterraformnsg" {
         destination_address_prefix = "*"
     }
 
+    security_rule {
+        name                       = "smb"
+        priority                   = 1005
+        direction                  = "Inbound"
+        access                     = "Allow"
+        protocol                   = "Tcp"
+        source_port_range          = "*"
+        destination_port_range     = "445"
+        source_address_prefix      = "*"
+        destination_address_prefix = "*"
+    }
+
     
 }
-## <https://www.terraform.io/docs/providers/azurerm/r/network_interface.html>
 resource "azurerm_network_interface" "internal" {
   name                = "internal-nic"
   location            = azurerm_resource_group.thycotic.location
@@ -84,14 +104,13 @@ resource "azurerm_network_interface" "internal" {
   }
 }
 
-## <https://www.terraform.io/docs/providers/azurerm/r/windows_virtual_machine.html>
 resource "azurerm_windows_virtual_machine" "secretserver" {
   name                = var.servername
   resource_group_name = azurerm_resource_group.thycotic.name
   location            = azurerm_resource_group.thycotic.location
   size                = "Standard_B2ms"
   admin_username      = "adminuser"
-  admin_password      = var.kv-admin-user-password
+  admin_password      = var.kv-win-admin-password
   network_interface_ids = [
     azurerm_network_interface.internal.id,
   ]
@@ -109,18 +128,7 @@ os_disk {
   }
 }
 
-resource "azurerm_virtual_machine_extension" "vmext" {
-  name                 = azurerm_windows_virtual_machine.secretserver.name
-  virtual_machine_id   = azurerm_windows_virtual_machine.secretserver.id
-  publisher            = "Microsoft.Compute"
-  type                 = "CustomScriptExtension"
-  type_handler_version = "1.10"
-
-  settings = <<SETTINGS
-    {
-        "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File ConfigureRemotingForAnsible.ps1",
-        "fileUris": ["https://raw.githubusercontent.com/ansible/ansible/devel/examples/scripts/ConfigureRemotingForAnsible.ps1"]
-    }
-SETTINGS
-
+output "secrectserver_pub_ip" {
+  description = "Public IP Address of SecretServer"
+  value       = azurerm_public_ip.myterraformpublicip.ip_address
 }

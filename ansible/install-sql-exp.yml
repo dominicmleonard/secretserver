@@ -1,0 +1,29 @@
+---
+- hosts: secretserver
+  vars:
+    ansible_become: yes
+    ansible_become_method: runas
+    ansible_become_user: adminuser
+    ansible_become_password: #{kv-win-admin-password}#
+
+  tasks:
+
+    - name: Install SQL Express via Choco
+      win_chocolatey:
+        name: sql-server-express
+        override_args: true
+        install_args: /Q /ACTION=INSTALL /FEATURES=SQLENGINE /INSTANCENAME=MSSQLSERVER /SECURITYMODE=SQL /SAPWD="#{kv-win-admin-password}#" /SQLSVCACCOUNT="NT AUTHORITY\System" /AGTSVCACCOUNT="NT AUTHORITY\System" /SQLSYSADMINACCOUNTS="BUILTIN\Administrators" /IACCEPTSQLSERVERLICENSETERMS=1 /TCPENABLED=1 /UPDATEENABLED=False
+        state: present
+
+    - name: create the secretserver sql user and database using a method
+      win_copy:
+        src: secretserver.sql
+        dest: c:\temp
+     
+    - name: build the database
+      win_shell: |
+        try
+          {Get-SqlDatabase -ServerInstance #{pl-server-name}# -Name secretserver -ErrorAction Stop }
+        catch
+          {Invoke-Sqlcmd -ServerInstance #{pl-server-name}# -InputFile 'C:\temp\secretserver.sql' | Out-File -FilePath 'C:\temp\secretserver.rpt'}
+      register: response

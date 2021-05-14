@@ -1,12 +1,16 @@
-variable "kv-ado-spn-appid" {}
-variable "kv-ado-spn-password" {}
-variable "kv-ado-spn-tenant" {}
-variable "kv-admin-user-password" {}
+variable "kv-win-admin-password" {
+  type    = string
+  default = "#{kv-win-admin-password}#"
+}
 variable location-name {
   type    = string
   default = "westeurope"
 }
 variable "servername" {
   type    = string
-  default = "secrectserver01"
+  default = "#{pl-server-name}#"
+}
+variable "resourcegroup" {
+  type    = string
+  default = "#{pl-rg-name}#"
 }

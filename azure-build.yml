@@ -1,0 +1,140 @@
+variables:
+- name: pl-server-name
+  value: 'secretserver01'
+- name: pl-rg-name
+  value: 'thycotic-rg-001'
+- group: dleonard-kvault01
+
+pool:
+  vmImage: ubuntu-latest
+stages:
+- stage: Build
+  displayName: Terraform Build
+  jobs:
+  - job: Build
+    steps: 
+      - task: qetza.replacetokens.replacetokens-task.replacetokens@3
+        displayName: 'Replace tokens in Terraform Files'
+        inputs:
+          rootDirectory: terraform
+          targetFiles: '*.tf'
+
+      - bash: |
+          terraform init \
+            -backend-config="storage_account_name=$TF_STATE_BLOB_ACCOUNT_NAME" \
+            -backend-config="container_name=$TF_STATE_BLOB_CONTAINER_NAME" \
+            -backend-config="key=$TF_STATE_BLOB_FILE" \
+            -backend-config="access_key=$TF_STATE_BLOB_ACCESS_KEY"
+        displayName: Terraform Init
+        workingDirectory: 'terraform'
+        env:
+          TF_STATE_BLOB_ACCOUNT_NAME:   $(kv-tf-state-blob-account)
+          TF_STATE_BLOB_CONTAINER_NAME: $(kv-tf-state-blob-container)
+          TF_STATE_BLOB_FILE:           $(kv-tf-state-blob-file)
+          TF_STATE_BLOB_ACCESS_KEY:     $(kv-sa-dleonard01-key1)
+
+      - bash: |
+          terraform validate
+        displayName: Terraform Validate
+        workingDirectory: 'terraform'
+
+      - bash: |
+          terraform plan -input=false -out=tfplan 
+        displayName: Terraform Plan
+        workingDirectory: 'terraform'
+        env:
+          ARM_CLIENT_ID: $(kv-ado-spn-client-id)
+          ARM_CLIENT_SECRET: $(kv-ado-spn-key)
+          ARM_SUBSCRIPTION_ID: $(kv-ado-spn-subscription-id)
+          ARM_TENANT_ID: $(kv-ado-spn-tenant-id)
+
+      - bash: |
+          terraform apply -auto-approve -input=false tfplan
+        displayName: Terraform Apply
+        workingDirectory: 'terraform'
+        env:
+          ARM_CLIENT_ID: $(kv-ado-spn-client-id)
+          ARM_CLIENT_SECRET: $(kv-ado-spn-key)
+          ARM_SUBSCRIPTION_ID: $(kv-ado-spn-subscription-id)
+          ARM_TENANT_ID: $(kv-ado-spn-tenant-id)
+
+- stage: Config
+  displayName: Ansible Config
+  jobs:
+  - job: Config
+    steps:
+      - bash: |
+          az login --service-principal --username $(kv-ado-spn-client-id) --password $(kv-ado-spn-key) --tenant $(kv-ado-spn-tenant-id)
+          az vm run-command invoke --command-id RunPowerShellScript --name $(PL-SERVER-NAME) -g $(PL-RG-NAME) --scripts @set-ansiblewinrm.ps1
+        displayName: Run Ansible Config ps1 on Az VM
+        workingDirectory: 'ansible'
+
+      - bash: |
+          az login --service-principal --username $(kv-ado-spn-client-id) --password $(kv-ado-spn-key) --tenant $(kv-ado-spn-tenant-id)
+          secrectserver_pub_ip=$(az vm show -d -g $(PL-RG-NAME) -n $(PL-SERVER-NAME) --query publicIps -o tsv)
+          echo "##vso[task.setvariable variable=secrectserver_pub_ip;]$secrectserver_pub_ip"
+          echo $secretserver_pub_ip
+        displayName: Set secrectserver_pub_ip as var
+        workingDirectory: 'ansible'
+
+      - bash: |
+          echo $(secrectserver_pub_ip)
+        displayName: show ip
+      
+      - task: CmdLine@2
+        displayName: Install pywinrm
+        inputs:
+         script: 'pip install -t /opt/pipx/venvs/ansible-base/lib/python3.8/site-packages pywinrm winrm'
+      
+      - task: CmdLine@2
+        displayName: Install Ansible Community.Windows
+        inputs:
+          script: ansible-galaxy collection install community.windows
+      
+      - task: qetza.replacetokens.replacetokens-task.replacetokens@3
+        displayName: 'Replace tokens in inventory,*.yml, *.sql'
+        inputs:
+          rootDirectory: ansible
+          targetFiles: 'inventory,*.yml,*.sql'
+
+      - task: CmdLine@2
+        displayName: Install IIS
+        inputs:
+          script: 'ansible-playbook -i inventory install-iis.yml -vvvv'
+          workingDirectory: 'ansible'
+
+      - task: CmdLine@2
+        displayName: Install DotNet 4.8
+        inputs:
+          script: 'ansible-playbook -i inventory install-dotnetfx.yml -vvvv'
+          workingDirectory: 'ansible'
+
+      - task: CmdLine@2
+        displayName: Get Secret Server Source
+        inputs:
+          script: 'ansible-playbook -i inventory get-source.yml -vvvv'
+          workingDirectory: 'ansible'
+
+      - task: CmdLine@2
+        displayName: Create IIS App Pool
+        inputs:
+          script: 'ansible-playbook -i inventory create-app-pool.yml -vvvv'
+          workingDirectory: 'ansible'
+
+      - task: CmdLine@2
+        displayName: Create IIS Virtual Directory
+        inputs:
+          script: 'ansible-playbook -i inventory create-web-site.yml -vvvv'
+          workingDirectory: 'ansible'
+
+      - task: CmdLine@2
+        displayName: Install SQL Express & Create dB
+        inputs:
+          script: 'ansible-playbook -i inventory install-sql-exp.yml -vvvv'
+          workingDirectory: 'ansible'
+          
+      - task: CmdLine@2
+        displayName: Install Thycotic Secret Server
+        inputs:
+          script: 'ansible-playbook -i inventory install-thycotic.yml -vvvv'
+          workingDirectory: 'ansible'

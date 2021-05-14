@@ -1,0 +1,39 @@
+---
+- hosts: secretserver
+  tasks:
+
+  - name: Create Temp Folder
+    ansible.windows.win_file:
+      path: C:\Temp
+      state: directory
+
+  - name: Download Secret Server Web Site Content
+    ansible.windows.win_get_url:
+      url: #{kv-secretserver-source}#
+      dest: C:\Temp\Content.zip
+
+  - name: Create secretserver dir in wwwroot
+    ansible.windows.win_file:
+      path: C:\inetpub\wwwroot\secretserver
+      state: directory
+      
+  - name: Unzip Secret Server Content Temp
+    community.windows.win_unzip:
+      src: C:\Temp\Content.zip
+      dest: C:\Temp\
+  
+  - name: Copy Content to wwwroot folder
+    win_copy:
+      src: C:\Temp\content\
+      dest: C:\inetpub\wwwroot\secretserver\
+      remote_src: true
+
+  - name: Create Temp Folder
+    ansible.windows.win_file:
+      path: C:\Thycotic
+      state: directory
+
+  - name: Download Secret Server Setup.exe
+    ansible.windows.win_get_url:
+      url: #{kv-ss-setup}#
+      dest: C:\Thycotic\

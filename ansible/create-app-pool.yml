@@ -1,0 +1,8 @@
+---
+- hosts: secretserver
+  tasks:
+
+  - name: Create a new application pool in 'Started' state
+    community.windows.win_iis_webapppool:
+      name: secretserver
+      state: started

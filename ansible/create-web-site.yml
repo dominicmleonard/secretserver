@@ -1,0 +1,23 @@
+---
+- hosts: secretserver
+  tasks:
+
+  - name: Create a virtual directory on an application if it does not exist
+    community.windows.win_iis_virtualdirectory:
+      name: secretserver
+      site: 'Default Web Site'
+      application: secretserver
+      state: present
+      physical_path: C:\inetpub\wwwroot\secretserver
+
+  - name: Add Secret Server webapplication on IIS.
+    community.windows.win_iis_webapplication:
+      name: secretserver
+      site: 'Default Web Site'
+      username: adminuser
+      password: #{kv-win-admin-password}#
+      state: present
+      physical_path: C:\inetpub\wwwroot\secretserver
+  
+  - name: reboot server
+    win_reboot:

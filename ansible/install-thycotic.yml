@@ -1,0 +1,11 @@
+---
+- hosts: secretserver
+  tasks:
+    
+    - name: run the installer silently ss
+      win_shell: ./Setup.exe -q -s InstallSecretServer=1 InstallPrivilegeManager=0 DatabaseServer=localhost DatabaseName=secretServer DatabaseUserName=secretadmin DatabasePassword=#{kv-win-admin-password}# SecretServerUserDisplayName=adminuser SecretServerUserEmail=adminuser@test.com SecretServerUserName=adminuser SecretServerUserPassword=#{kv-win-admin-password}# /l C:\temp\ss-install.log /nodetect
+      args:
+        chdir: c:\thycotic
+      register: runinstaller2
+      async: 1800
+      poll: 30
