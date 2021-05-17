@@ -121,7 +121,7 @@ The remaining tasks split the Ansible playbooks I have written into separate tas
 |kv-ado-spn-key|Azure Key Vault|Service Principal password|
 |kv-ado-spn-subscription-id|Azure Key Vault|Service Principal Subscription Id|
 |kv-ado-spn-tenant-id|Azure Key Vault|Service Principal Tenant Id|
-|kv-sa-dleonard02-key1|Azure Key Vault|torage Account Access Key|
+|kv-sa-dleonard02-key1|Azure Key Vault|Storage Account Access Key|
 |kv-secretserver-source|Azure Key Vault|url location of Secret Server source files|
 |kv-ss-setup|Azure Key Vault|url location of Secret Server setup.exe|
 |kv-tf-state-blob-account|Azure Key Vault|storage account for terraform state|
