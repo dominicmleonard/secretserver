@@ -71,14 +71,14 @@ stages:
 
       - bash: |
           az login --service-principal --username $(kv-ado-spn-client-id) --password $(kv-ado-spn-key) --tenant $(kv-ado-spn-tenant-id)
-          secrectserver_pub_ip=$(az vm show -d -g $(PL-RG-NAME) -n $(PL-SERVER-NAME) --query publicIps -o tsv)
-          echo "##vso[task.setvariable variable=secrectserver_pub_ip;]$secrectserver_pub_ip"
+          secretserver_pub_ip=$(az vm show -d -g $(PL-RG-NAME) -n $(PL-SERVER-NAME) --query publicIps -o tsv)
+          echo "##vso[task.setvariable variable=secretserver_pub_ip;]$secretserver_pub_ip"
           echo $secretserver_pub_ip
-        displayName: Set secrectserver_pub_ip as var
+        displayName: Set secretserver_pub_ip as var
         workingDirectory: 'ansible'
 
       - bash: |
-          echo $(secrectserver_pub_ip)
+          echo $(secretserver_pub_ip)
         displayName: show ip
       
       - task: CmdLine@2

@@ -1,5 +1,5 @@
 [secretserver]
-#{secrectserver_pub_ip}#
+#{secretserver_pub_ip}#
 
 [secretserver:vars]
 ansible_user=adminuser
