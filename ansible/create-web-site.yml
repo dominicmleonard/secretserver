@@ -18,6 +18,3 @@
       password: #{kv-win-admin-password}#
       state: present
       physical_path: C:\inetpub\wwwroot\secretserver
-  
-  - name: reboot server
-    win_reboot:
